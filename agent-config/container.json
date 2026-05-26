@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "tradingview": {
+      "command": "npx",
+      "args": ["-y", "tradingview-mcp-server"],
+      "instructions": "Use TradingView MCP tools for fetching real-time stock data, technical indicators, and running screener queries. Prefer these tools over WebFetch for market data. Key capabilities: get current prices, OHLCV history, RSI/MACD/Bollinger Bands, and screen stocks by criteria."
+    }
+  },
+  "packages": {
+    "apt": [],
+    "npm": []
+  },
+  "additionalMounts": [],
+  "skills": "all",
+  "agentGroupId": "ag-main",
+  "groupName": "Main",
+  "assistantName": "Main"
+}
