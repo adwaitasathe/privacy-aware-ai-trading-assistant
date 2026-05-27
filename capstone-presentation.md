@@ -246,51 +246,72 @@ Host (Node.js)                    Container (Bun + Claude)
 
 ---
 
-## 4. Top Next Priority
+## 4. Top 3 Priorities Going Forward
 
-### Payload Auditing for Claude API Calls
+| # | Priority | Core Benefit |
+|---|----------|-------------|
+| **1** | Local Model Fallback | Zero data leaves device for routine queries |
+| **2** | User-Controlled Data Retention | Users decide what the assistant remembers |
+| **3** | Sensitive Data Redaction in Memory | Hard technical barrier before data hits the API |
 
-**The gap:** we know at the *architecture level* what *should* be in API calls. We have no runtime visibility into what *is* actually sent.
-
-**The risk:** the agent is instructed to remember preferences across sessions. Over time, memory files accumulate financial commentary — and those files get included in future context windows sent to Anthropic.
-
-**What "privacy by assertion" looks like today vs. what we want:**
-
-| Today | With Payload Auditing |
-|-------|----------------------|
-| "We believe minimal data leaves" | "Here is a log of token counts + data categories per call" |
-| Architecture-level claim | Per-call evidence |
-| Cannot demonstrate to an auditor | Can demonstrate to an auditor |
+Each addresses a **different layer** of the same problem: limiting what personal financial data reaches a third-party API — by prevention, control, and enforcement.
 
 ---
 
-## The Business Case for Payload Auditing
+## Priority 1: Local Model Fallback
 
-**What to build (low cost):**
-1. Instrument agent runner poll loop: log token count + privacy-labeled summary per API call (no full content logged)
-2. Max-retention policy for memory files (e.g., conversations >30 days archived/excluded from context)
-3. Static analysis: classify "acceptable data" (ticker symbols, public prices) vs. "sensitive" (allocations, cost basis, broker IDs) — verify CLAUDE.md never prompts for the latter
+**What:** Route routine queries (watchlist checks, price lookups, RSI) to a local open-weight model. Only call the Anthropic API for complex analysis.
 
-**Compliance angle:**
-- FINRA Rule 4370, SEC Regulation S-P, GDPR Article 25 all require *demonstrating* what personal/financial data you process and where it goes
-- Moves from **privacy-by-assertion** → **privacy-by-evidence**
+**Why it matters**
+- **Risk:** Eliminates third-party data transmission for ~80% of queries — the highest-frequency, lowest-complexity interactions
+- **Compliance:** Dramatically simplifies Reg S-P and GDPR Art. 25 obligations — data that never leaves the device needs no retention policy
+- **Cost:** Reduces API spend proportional to query volume
 
-**ROI:** ~200 lines in the agent runner. Closes the last uninstrumented surface.
+**Strategic fit**
+Moves the posture from *"minimize what we send"* to *"send nothing for routine operations."* Aligns with a zero-trust data principle: external API as last resort, not default.
+
+**Value created**
+- Privacy-by-default for high-frequency queries
+- Lower ongoing API cost — measurable ROI from day one
+- Regulatory defensibility: simple to demonstrate compliance when data never moves
 
 ---
 
-## Strategic Fit
+## Priority 2: User-Controlled Data Retention
 
-**The pattern of this project:**
+**What:** Give users explicit controls — retention windows (e.g. 30 days), selective memory deletion, and visibility into what the agent has stored.
 
-| Surface | Mitigation | Status |
-|---------|-----------|--------|
-| Credentials | OneCLI vault — per-request injection | ✅ Done |
-| Channel access | Telegram pairing + localhost Web UI | ✅ Done |
-| Host ↔ container | Two-DB split — no network ports | ✅ Done |
-| **Claude API calls** | **Payload auditing** | **← Next** |
+**Why it matters**
+- **User trust:** Users of a financial AI need to know they can erase what it knows about them — today they cannot
+- **Compliance:** GDPR Article 17 (right to erasure), CCPA deletion rights — both require this capability for any user-facing AI product
+- **Risk:** Memory files that accumulate indefinitely are an expanding attack surface; every file is potential context in future API calls
 
-The Claude API call is the **one surface we cannot eliminate** — it is the product. Making it auditable closes the loop on our privacy-by-design posture.
+**Strategic fit**
+Directly addresses the compounding risk: the longer the assistant runs, the more financial commentary accumulates in memory. Retention controls put a ceiling on that exposure — permanently.
+
+**Value created**
+- Trust signal: users see a delete button, not a black box
+- Compliance readiness for consumer-facing deployment
+- Reduces long-term API payload size as a side effect — cost and privacy benefit in one control
+
+---
+
+## Priority 3: Sensitive Data Redaction in Memory
+
+**What:** Before any memory file is included in an API call, automatically classify and redact sensitive fields — portfolio allocations, cost basis, broker account IDs — while preserving public data (tickers, prices).
+
+**Why it matters**
+- **Security:** Architectural enforcement, not monitoring — sensitive data is blocked before it reaches the API, not logged after
+- **Risk reduction:** Eliminates the class of incident where a new feature or prompt change accidentally pulls sensitive data into context
+- **Compliance:** Demonstrates data minimization at the technical layer — satisfies GDPR Art. 25 "privacy by design" by construction, not policy
+
+**Strategic fit**
+The other mitigations (vault, pairing, two-DB split) all work by *isolation*. This one works by *classification* — a different and complementary control. Together they cover both the boundary and the content.
+
+**Value created**
+- Strongest privacy guarantee of the three: even if everything else fails, sensitive fields never reach the wire
+- Enables richer agent memory without privacy risk — users get a more capable assistant, not a trade-off
+- Reusable pattern: the classifier becomes an asset for any future AI feature in the product
 
 ---
 
